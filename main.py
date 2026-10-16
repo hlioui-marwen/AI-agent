@@ -8,7 +8,7 @@ import gradio as gr
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
 import uuid
-
+from langchain_community.tools.tavily_search import TavilySearchResults
 
 load_dotenv()
 #GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -17,6 +17,7 @@ def get_date():
     """Get the current date"""
     return datetime.now().strftime("%Y-%m-%d")
 
+search_tools = TavilySearchResults()
 conn = sqlite3.connect("chatbot_memory.db", check_same_thread=False)
 checkpointer = SqliteSaver(conn)
 
@@ -25,10 +26,14 @@ llm = ChatOllama(model="qwen2.5:3b")
 system_prompt = """
 You are a helpful assistant.
 Answer all user's queries
-Use the get-date tool if the user is asking about today's date.
+Use the get-date tool ONLY when the user is explicitly asking about today's date.
+Use the search_tool for answering questions that require up to date information.
 """
 
-agent = create_agent(model=llm, tools=[get_date], system_prompt=system_prompt, checkpointer=checkpointer)
+agent = create_agent(model=llm,
+                     tools=[get_date, search_tools],
+                     system_prompt=system_prompt,
+                     checkpointer=checkpointer)
 #user_query = input("Enter a query: ")
 #response = agent.invoke({"messages":[{"role": "user", "content": user_query}]})
 #response = agent.invoke({"messages":[{"role": "user", "content": "Hi there"}]})
